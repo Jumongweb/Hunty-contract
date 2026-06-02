@@ -294,6 +294,40 @@ mod test {
     }
 
     #[test]
+    fn test_create_hunt_twice_returns_different_ids() {
+        let env = Env::default();
+        env.ledger().set_timestamp(1_700_000_000);
+        let creator = Address::generate(&env);
+        let title = String::from_str(&env, "Test Hunt");
+        let description = String::from_str(&env, "Description");
+
+        let (first_hunt_id, second_hunt_id) = with_core_contract(&env, |env, _cid| {
+            let first_hunt_id = HuntyCore::create_hunt(
+                env.clone(),
+                creator.clone(),
+                title.clone(),
+                description.clone(),
+                None,
+                None,
+            )
+            .unwrap();
+            let second_hunt_id = HuntyCore::create_hunt(
+                env.clone(),
+                creator,
+                title,
+                description,
+                None,
+                None,
+            )
+            .unwrap();
+
+            (first_hunt_id, second_hunt_id)
+        });
+
+        assert_ne!(first_hunt_id, second_hunt_id);
+    }
+
+    #[test]
     fn test_create_hunt_different_creators() {
         let env = Env::default();
         env.ledger().set_timestamp(1_700_000_000);
