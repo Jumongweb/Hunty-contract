@@ -308,6 +308,31 @@ pub struct LeaderboardEntry {
     pub queried_at: u64,
 }
 
+/// Lightweight row returned when scanning a window of players. Includes the
+/// original player index so callers can merge/paginate results client-side.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LeaderboardRow {
+    pub index: u32,
+    pub player: Address,
+    pub score: u32,
+    pub completed_at: u64,
+    pub is_completed: bool,
+}
+
+/// Result of a single leaderboard scan window. Clients may call repeatedly
+/// with `next_index` until `finished` is true, merging `entries` off-chain to
+/// produce a global top-N leaderboard without requiring a single large on-chain
+/// scan (which would be expensive in gas).
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LeaderboardWindow {
+    pub entries: Vec<LeaderboardRow>,
+    pub next_index: u32,
+    pub finished: bool,
+    pub queried_at: u64,
+}
+
 /// Aggregate statistics for a hunt (read-only query result).
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]

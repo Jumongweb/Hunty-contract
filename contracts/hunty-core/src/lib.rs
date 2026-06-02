@@ -847,6 +847,59 @@ impl HuntyCore {
         Ok(result)
     }
 
+    /// Scans a bounded window of registered players for a hunt and returns
+    /// their compact rows. This method enables clients to page through all
+    /// registered players in multiple calls (bounded by `MAX_LEADERBOARD_SCAN_SIZE`)
+    /// and merge results off-chain to build a full leaderboard without a single
+    /// large on-chain scan.
+    ///
+    /// Arguments:
+    /// * `env` - Soroban environment
+    /// * `hunt_id` - Hunt identifier
+    /// * `start_index` - Zero-based index into the registered players list to start scanning
+    /// * `window_size` - Number of player records to scan in this call (capped)
+    ///
+    /// Returns a `LeaderboardWindow` containing the scanned rows, the `next_index`
+    /// clients should use for the following call and a `finished` flag indicating
+    /// whether the end of the player list has been reached.
+    pub fn get_hunt_leaderboard_window(
+        env: Env,
+        hunt_id: u64,
+        start_index: u32,
+        window_size: u32,
+    ) -> Result<crate::types::LeaderboardWindow, HuntErrorCode> {
+        let _ = Storage::get_hunt(&env, hunt_id).ok_or(HuntErrorCode::HuntNotFound)?;
+        let queried_at = env.ledger().timestamp();
+        let players = Storage::get_hunt_players(&env, hunt_id);
+        let total_players = players.len();
+
+        let start = core::cmp::min(start_index as usize, total_players);
+        let capped_window = core::cmp::min(window_size, MAX_LEADERBOARD_SCAN_SIZE);
+        let end = core::cmp::min(start + capped_window as usize, total_players);
+
+        let mut rows = Vec::new(&env);
+        for i in start..end {
+            let p = players.get(i).unwrap();
+            rows.push_back(crate::types::LeaderboardRow {
+                index: i as u32,
+                player: p.player.clone(),
+                score: p.total_score,
+                completed_at: p.completed_at,
+                is_completed: p.is_completed,
+            });
+        }
+
+        let next_index = end as u32;
+        let finished = end >= total_players;
+
+        Ok(crate::types::LeaderboardWindow {
+            entries: rows,
+            next_index,
+            finished,
+            queried_at,
+        })
+    }
+
     /// Picks the index of the best entry not in `selected`. Order: score desc, then completed_at asc (0 = last).
     fn leaderboard_best_index(
         entries: &Vec<(Address, u32, u64, bool)>,
