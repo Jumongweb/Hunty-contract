@@ -93,3 +93,43 @@ fn test_get_hunt_statistics_mixed_completion_states() {
     assert_eq!(stats.total_score_sum, 20);
     assert_eq!(stats.average_score, 6);
 }
+
+#[test]
+fn test_cancel_hunt_on_draft_status() {
+    let env = Env::default();
+    env.ledger().set_timestamp(1_700_000_000);
+
+    let creator = Address::generate(&env);
+
+    // Register contract and create hunt
+    let contract_id = env.register(HuntyCore, ());
+    let hunt_id = execute_in_contract(&env, &contract_id, |env| {
+        HuntyCore::create_hunt(
+            env.clone(),
+            creator.clone(),
+            String::from_str(env, "Draft Hunt"),
+            String::from_str(env, "Description"),
+            None,
+            None,
+        )
+        .unwrap()
+    });
+
+    // Verify hunt is in Draft status immediately after creation
+    let hunt_before = execute_in_contract(&env, &contract_id, |env| {
+        HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap()
+    });
+    assert_eq!(hunt_before.status, crate::types::HuntStatus::Draft);
+
+    // Cancel the hunt while in Draft state (never activated)
+    env.mock_all_auths();
+    execute_in_contract(&env, &contract_id, |env| {
+        HuntyCore::cancel_hunt(env.clone(), hunt_id, creator.clone()).unwrap();
+    });
+
+    // Verify hunt status transitioned to Cancelled
+    let hunt_after = execute_in_contract(&env, &contract_id, |env| {
+        HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap()
+    });
+    assert_eq!(hunt_after.status, crate::types::HuntStatus::Cancelled);
+}
