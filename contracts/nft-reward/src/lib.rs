@@ -116,6 +116,9 @@ pub struct NftReward;
 
 #[contractimpl]
 impl NftReward {
+    /// Current version of this contract. Bump when making breaking changes.
+    pub const CONTRACT_VERSION: u32 = 1;
+
     /// Initializes the NFT reward contract with an optional max supply cap.
     /// Call this once if you want to enforce a finite NFT supply.
     pub fn initialize(env: Env, max_supply: Option<u64>) -> Result<(), crate::errors::NftErrorCode> {
@@ -124,6 +127,7 @@ impl NftReward {
         }
 
         Storage::set_max_supply(&env, max_supply);
+        Storage::set_contract_version(&env, Self::CONTRACT_VERSION);
         Ok(())
     }
 
@@ -520,9 +524,9 @@ impl NftReward {
         Ok(())
     }
 
-    /// Returns the contract version.
-    pub fn contract_version() -> u32 {
-        1
+    /// Returns the on-chain version stored during initialize, or the compiled constant.
+    pub fn contract_version(env: Env) -> u32 {
+        Storage::get_contract_version(&env).unwrap_or(Self::CONTRACT_VERSION)
     }
 
     /// Grants `operator` the ability to manage all NFTs owned by `owner`.

@@ -162,4 +162,14 @@ impl Storage {
             .instance()
             .get(&symbol_short!("RWMGR"))
     }
+
+    // --- Contract version ---
+
+    pub fn set_contract_version(env: &Env, version: u32) {
+        env.storage().instance().set(&symbol_short!("CVER"), &version);
+    }
+
+    pub fn get_contract_version(env: &Env) -> Option<u32> {
+        env.storage().instance().get(&symbol_short!("CVER"))
+    }
 }
