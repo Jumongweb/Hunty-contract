@@ -10,11 +10,11 @@ mod test {
     // Bring Soroban testutils traits into scope (generate addresses, set ledger info, register contracts).
     use crate::errors::{HuntError, HuntErrorCode};
     use crate::storage::Storage;
-    use crate::types::HuntStatus;
+    use crate::types::{HuntCompletedEvent, HuntStatus};
     use crate::HuntyCore;
     use nft_reward::NftReward;
     use reward_manager::RewardManager;
-    use soroban_sdk::testutils::{Address as _, Ledger as _};
+    use soroban_sdk::testutils::{Address as _, Events as _, Ledger as _};
     use soroban_sdk::{token, String as SorobanString};
 
     /// Runs a closure inside a registered HuntyCore contract context so storage is accessible.
@@ -1711,7 +1711,7 @@ mod test {
             HuntyCore::cancel_hunt(env.clone(), hunt_id, creator.clone()).unwrap();
             
             // Verify hunt is cancelled
-            let hunt = HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap();
+            let _hunt = HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap();
             assert_eq!(hunt.status, HuntStatus::Cancelled);
             
             // Attempt to register player2 on cancelled hunt
@@ -1798,7 +1798,7 @@ mod test {
             submit_answer(env, hunt_id, 1, player1.clone(), answer.clone(), 1).unwrap();
             
             // Hunt status transitions to Completed when player1 completes
-            let hunt = HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap();
+            let _hunt = HuntyCore::get_hunt_info(env.clone(), hunt_id).unwrap();
             // After submit_answer, the hunt may transition to Completed
             // Attempt to register player2 on the hunt (whether Completed or not)
             let result = HuntyCore::register_player(env.clone(), hunt_id, player2.clone());
