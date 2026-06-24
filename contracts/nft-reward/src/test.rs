@@ -78,6 +78,40 @@ fn mint_transferable(
 }
 
 #[test]
+fn test_initialize_stores_admin() {
+    let env = setup_env();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, NftReward);
+    let client = NftRewardClient::new(&env, &contract_id);
+    client.initialize(&admin, &None);
+
+    assert_eq!(client.get_admin(), Some(admin));
+}
+
+#[test]
+fn test_initialize_requires_auth() {
+    let env = Env::default();
+    env.ledger().set_timestamp(1000);
+
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, NftReward);
+    let client = NftRewardClient::new(&env, &contract_id);
+
+    client.initialize(&admin, &None);
+}
+
+#[test]
+#[should_panic(expected = "HostError")]
+fn test_initialize_cannot_be_called_twice() {
+    let env = setup_env();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, NftReward);
+    let client = NftRewardClient::new(&env, &contract_id);
+    client.initialize(&admin, &None);
+    client.initialize(&admin, &None);
+}
+
+#[test]
 fn test_mint_reward_nft() {
     let env = setup_env();
     let client = NftRewardClient::new(&env, &env.register(NftReward, ()));
